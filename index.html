@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}</style>
+</head>
+<body>
+<title>Validación Tamizaje RD</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500&display=swap">
+<style>
+/* Layout: banda de estado arriba; visor del fondo de ojo a la izquierda, panel de graduación a la derecha; registro y métricas abajo. */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --sunken:#e8ecea; --line:#d3dad7; --fg:#15201d; --muted:#5b6964;
+  --accent:#0b5f73; --accent-ink:#ffffff; --accent-soft:#dcebef;
+  --ref:#b3261e; --ref-soft:#f8e1de; --ok:#2e6b3a; --ok-soft:#e0efe2; --warn:#8a5a00; --warn-soft:#f6ecd4;
+  --fundus:#0d0f0f;
+  --f-display:"IBM Plex Serif",Georgia,serif; --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101615; --surface:#172020; --sunken:#0c1111; --line:#2b3836; --fg:#e4ebe8; --muted:#93a39e;
+  --accent:#5fb3c7; --accent-ink:#06222a; --accent-soft:#163239;
+  --ref:#f2867c; --ref-soft:#3a1d1a; --ok:#86c792; --ok-soft:#1a3020; --warn:#e3b55a; --warn-soft:#33290f; --fundus:#000;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101615; --surface:#172020; --sunken:#0c1111; --line:#2b3836; --fg:#e4ebe8; --muted:#93a39e;
+  --accent:#5fb3c7; --accent-ink:#06222a; --accent-soft:#163239;
+  --ref:#f2867c; --ref-soft:#3a1d1a; --ok:#86c792; --ok-soft:#1a3020; --warn:#e3b55a; --warn-soft:#33290f; --fundus:#000;
+  color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1240px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-family:var(--f-display);font-weight:500;font-size:1.65rem;letter-spacing:-.01em}
+h2{font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+small,.small{font-size:.84rem}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header.top{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.title-block{display:flex;flex-direction:column;gap:4px;min-width:0}
+.title-block p{margin:0;color:var(--muted);max-width:62ch}
+.privacy{display:flex;gap:10px;align-items:flex-start;background:var(--ok-soft);color:var(--ok);border-radius:var(--r);padding:10px 14px;max-width:440px;font-size:.88rem}
+.privacy svg{flex:none;margin-top:2px}
+
+.status{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.status>div{background:var(--surface);padding:10px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.status .k{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.status .v{font-family:var(--f-mono);font-size:.9rem;overflow-wrap:anywhere}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:6px;vertical-align:1px}
+.dot.on{background:var(--ok)} .dot.err{background:var(--ref)} .dot.busy{background:var(--warn)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.session{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px 18px;align-items:end}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.84rem;color:var(--muted)}
+input[type=text],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:7px 9px;color:var(--fg);width:100%}
+textarea{resize:vertical;min-height:56px}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:.88rem}
+.check input{margin-top:4px}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:7px 14px;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:4px 10px;font-size:.84rem}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+.drop{border:1.5px dashed var(--line);border-radius:var(--r);padding:18px;display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;justify-content:space-between;background:var(--surface)}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop p{margin:0}
+.queue{display:flex;gap:6px;flex-wrap:wrap;max-height:84px;overflow:auto}
+.chip{font-family:var(--f-mono);font-size:.76rem;padding:2px 8px;border-radius:99px;background:var(--sunken);color:var(--muted);border:1px solid transparent;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip.cur{border-color:var(--accent);color:var(--fg)}
+.chip.done{background:var(--accent-soft);color:var(--accent)}
+
+.work{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.work{grid-template-columns:minmax(0,1fr)}}
+.viewer{display:flex;flex-direction:column;gap:10px}
+.tabs{display:flex;gap:2px;background:var(--sunken);padding:3px;border-radius:6px;width:fit-content;max-width:100%;flex-wrap:wrap}
+.tabs button{border:0;background:transparent;padding:5px 12px;border-radius:4px;font-size:.88rem;color:var(--muted)}
+.tabs button[aria-selected=true]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgb(0 0 0/.12)}
+.tabs button:disabled{opacity:.4;cursor:not-allowed}
+.stage{background:var(--fundus);border-radius:var(--r);overflow:auto;aspect-ratio:1/1;max-width:100%;position:relative}
+.stage canvas{display:block;width:100%;height:auto}
+.stage.zoom canvas{width:220%}
+.stage .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;color:#9aa8a4;text-align:center;padding:24px}
+.stage .empty svg{opacity:.5}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.84rem;align-items:center}
+.legend label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.sw{width:12px;height:12px;border-radius:2px;display:inline-block}
+.jet{width:120px;height:10px;border-radius:2px;background:linear-gradient(90deg,#00f,#0ff,#0f0,#ff0,#f00)}
+input[type=range]{accent-color:var(--accent);width:120px}
+
+.panel{display:flex;flex-direction:column;gap:14px}
+.panel h3{font-size:1rem;font-weight:600}
+.step{display:flex;flex-direction:column;gap:12px}
+.seg{display:flex;flex-wrap:wrap;gap:4px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{border:1px solid var(--line);border-radius:4px;padding:6px 10px;font-size:.88rem;cursor:pointer;background:var(--bg);display:flex;flex-direction:column;line-height:1.2}
+.seg label b{font-family:var(--f-mono);font-weight:500}
+.seg label span{font-size:.72rem;color:var(--muted)}
+.seg input:checked+label{border-color:var(--accent);background:var(--accent-soft);color:var(--fg)}
+.seg input:focus-visible+label{outline:2px solid var(--accent);outline-offset:1px}
+.locked{font-size:.84rem;color:var(--muted);background:var(--sunken);border-radius:4px;padding:8px 10px}
+
+.verdict{border-radius:var(--r);padding:12px 14px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.verdict.ref{background:var(--ref-soft);color:var(--ref)}
+.verdict.no{background:var(--ok-soft);color:var(--ok)}
+.verdict strong{font-size:1.15rem;letter-spacing:.02em}
+.meter{position:relative;height:10px;background:var(--sunken);border-radius:5px;overflow:visible;margin-top:22px}
+.meter .fill{position:absolute;inset:0 auto 0 0;border-radius:5px;background:var(--accent)}
+.meter .thr{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--fg)}
+.meter .thr span{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-family:var(--f-mono);font-size:.7rem;white-space:nowrap;color:var(--muted)}
+.grades{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;font-size:.86rem}
+.grades .bar{height:8px;background:var(--sunken);border-radius:4px;overflow:hidden}
+.grades .bar i{display:block;height:100%;background:var(--muted)}
+.grades .top i{background:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:.84rem}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:.74rem;text-transform:uppercase;letter-spacing:.06em}
+td.n,th.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.tablebox{overflow-x:auto}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:.76rem;font-weight:500}
+.pill.ref{background:var(--ref-soft);color:var(--ref)} .pill.no{background:var(--ok-soft);color:var(--ok)} .pill.na{background:var(--sunken);color:var(--muted)}
+.pill.agree{background:var(--accent-soft);color:var(--accent)} .pill.dis{background:var(--warn-soft);color:var(--warn)}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.metric{display:flex;flex-direction:column;gap:2px;border-left:2px solid var(--line);padding-left:10px}
+.metric .k{font-size:.74rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.metric .v{font-family:var(--f-mono);font-size:1.25rem}
+.metric .ci{font-family:var(--f-mono);font-size:.76rem;color:var(--muted)}
+.cm{display:grid;grid-template-columns:auto repeat(2,minmax(64px,auto));gap:1px;background:var(--line);border:1px solid var(--line);width:fit-content;font-size:.82rem}
+.cm>div{background:var(--surface);padding:5px 10px;text-align:center}
+.cm .h{background:var(--sunken);color:var(--muted);font-size:.72rem}
+.cm .val{font-family:var(--f-mono)}
+
+.selftest{display:flex;flex-direction:column;gap:6px;font-size:.86rem}
+.selftest .line{font-family:var(--f-mono);font-size:.8rem}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:4px;font-size:.88rem;z-index:20;max-width:calc(100% - 32px)}
+.notice{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;max-width:90ch}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-1px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+details summary{cursor:pointer;font-weight:500}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="title-block">
+      <h1>Validación Tamizaje RD</h1>
+      <p>Graduación ciega de fondos de ojo frente al modelo v4 (MobileNetV3, 384 px, Grad-CAM) y al segmentador de lesiones. Uso exclusivo de investigación, no diagnóstico.</p>
+    </div>
+    <div class="privacy" role="note">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" stroke="currentColor" stroke-width="1.5"/></svg>
+      <span><strong>Las imágenes no salen de este equipo.</strong> Los modelos corren dentro del navegador. Las imágenes no se suben ni se guardan: se descartan al pasar a la siguiente. El registro solo contiene texto y números.</span>
+    </div>
+  </header>
+
+  <section class="status" aria-label="Estado de los modelos">
+    <div><span class="k">Clasificador</span><span class="v" id="stClf"><span class="dot busy"></span>sin cargar</span></div>
+    <div><span class="k">Segmentador de lesiones</span><span class="v" id="stSeg"><span class="dot busy"></span>sin cargar</span></div>
+    <div><span class="k">Motor</span><span class="v" id="stEng">ONNX Runtime Web</span></div>
+    <div><span class="k">Umbral de referencia</span><span class="v">P(referible) ≥ <span id="stThr">0.1592</span></span></div>
+  </section>
+
+  <section class="card session" aria-label="Datos de la sesión">
+    <label class="f">Evaluador (iniciales o código)
+      <input type="text" id="evaluador" placeholder="p. ej. OFT-01" autocomplete="off"></label>
+    <label class="f">Equipo de captura
+      <input type="text" id="equipo" placeholder="p. ej. Topcon TRC-NW400, celular + adaptador" autocomplete="off"></label>
+    <label class="f">Nombre de archivo en el registro
+      <select id="anon">
+        <option value="incluir">Incluir nombre de archivo</option>
+        <option value="id">Sustituir por ID secuencial</option>
+      </select></label>
+    <label class="check"><input type="checkbox" id="ciego" checked><span><strong>Modo ciego.</strong> El resultado del modelo se muestra solo después de registrar la graduación.</span></label>
+  </section>
+
+  <section class="drop" id="drop" aria-label="Agregar imágenes">
+    <div style="display:flex;flex-direction:column;gap:6px;min-width:0;flex:1 1 320px">
+      <p><strong>Arrastra aquí fondos de ojo</strong> (JPG, PNG o TIFF convertido) o elígelos de una carpeta. Se analizan uno a la vez.</p>
+      <p class="small muted">Usa archivos con nombres codificados, sin nombre del paciente. Esta página no lee los metadatos EXIF.</p>
+      <div class="queue" id="queue" aria-live="polite"></div>
+    </div>
+    <div class="row">
+      <input type="file" id="files" accept="image/*" multiple hidden>
+      <button class="btn primary" id="pick">Elegir imágenes</button>
+      <button class="btn" id="demo">Probar con un caso de ejemplo</button>
+    </div>
+  </section>
+
+  <section class="work">
+    <div class="viewer">
+      <div class="row" style="justify-content:space-between">
+        <div class="tabs" role="tablist" aria-label="Vista">
+          <button role="tab" id="tabO" aria-selected="true" data-v="orig">Original</button>
+          <button role="tab" id="tabG" aria-selected="false" data-v="cam">Grad-CAM</button>
+          <button role="tab" id="tabL" aria-selected="false" data-v="les">Lesiones</button>
+        </div>
+        <div class="row">
+          <button class="btn sm" id="zoom" aria-pressed="false">Ampliar</button>
+        </div>
+      </div>
+      <div class="stage" id="stage">
+        <canvas id="cv" width="1024" height="1024"></canvas>
+        <div class="empty" id="empty">
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-hidden="true"><circle cx="28" cy="28" r="25" stroke="currentColor" stroke-width="2"/><circle cx="36" cy="26" r="5" stroke="currentColor" stroke-width="2"/><path d="M33 28c-6 2-12 1-20-4M34 30c-4 5-10 9-18 10M36 31c1 6 0 11-4 16" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span>Sin imagen. Agrega fondos de ojo o prueba el caso de ejemplo.</span>
+        </div>
+      </div>
+      <div class="legend" id="legCam" hidden>
+        <span class="jet" aria-hidden="true"></span><span class="muted">baja → alta contribución a P(referible)</span>
+        <label>Opacidad <input type="range" id="alpha" min="0" max="100" value="75"></label>
+      </div>
+      <div class="legend" id="legLes" hidden></div>
+      <p class="small muted" id="imgInfo"></p>
+    </div>
+
+    <div class="panel">
+      <div class="card step" id="gradeCard">
+        <div class="row" style="justify-content:space-between">
+          <h3 id="gradeTitle">Graduación del oftalmólogo</h3>
+          <span class="mono small muted" id="curId"></span>
+        </div>
+        <fieldset style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:12px" id="gradeForm" disabled>
+          <div>
+            <div class="small muted" style="margin-bottom:4px">Calidad de la imagen</div>
+            <div class="seg" id="calidad">
+              <input type="radio" name="cal" id="cal1" value="gradable" checked><label for="cal1"><b>Gradable</b></label>
+              <input type="radio" name="cal" id="cal2" value="limitada"><label for="cal2"><b>Gradable con limitaciones</b></label>
+              <input type="radio" name="cal" id="cal3" value="no_gradable"><label for="cal3"><b>No gradable</b></label>
+            </div>
+          </div>
+          <div>
+            <div class="small muted" style="margin-bottom:4px">Grado ICDR</div>
+            <div class="seg" id="grado">
+              <input type="radio" name="gr" id="g0" value="0"><label for="g0"><b>0</b><span>Sin RD</span></label>
+              <input type="radio" name="gr" id="g1" value="1"><label for="g1"><b>1</b><span>RDNP leve</span></label>
+              <input type="radio" name="gr" id="g2" value="2"><label for="g2"><b>2</b><span>RDNP moderada</span></label>
+              <input type="radio" name="gr" id="g3" value="3"><label for="g3"><b>3</b><span>RDNP severa</span></label>
+              <input type="radio" name="gr" id="g4" value="4"><label for="g4"><b>4</b><span>RD proliferativa</span></label>
+            </div>
+          </div>
+          <div class="row" style="gap:12px;align-items:flex-start">
+            <label class="f" style="flex:1 1 150px">Edema macular
+              <select id="edema"><option value="">—</option><option>no</option><option>sí</option><option>no evaluable</option></select></label>
+            <label class="f" style="flex:1 1 150px">Midriasis
+              <select id="midriasis"><option value="">—</option><option>sí</option><option>no</option><option>desconocido</option></select></label>
+            <label class="f" style="flex:1 1 150px">Ojo
+              <select id="ojo"><option value="">—</option><option>OD</option><option>OI</option></select></label>
+          </div>
+          <label class="f">Comentario (opcional)
+            <textarea id="coment" placeholder="Hallazgos, artefactos, dudas"></textarea></label>
+        </fieldset>
+        <div class="row">
+          <button class="btn primary" id="registrar" disabled>Registrar graduación</button>
+          <button class="btn" id="saltar" disabled>Saltar imagen</button>
+        </div>
+        <p class="small muted" id="gradeHint">Agrega una imagen para empezar.</p>
+      </div>
+
+      <div class="card step" id="modelCard" hidden>
+        <div class="row" style="justify-content:space-between"><h3>Resultado del modelo</h3><span class="mono small muted" id="tiempos"></span></div>
+        <div id="modelBody"></div>
+        <div class="row"><button class="btn primary" id="siguiente">Siguiente imagen</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" style="display:flex;flex-direction:column;gap:16px" aria-label="Registro y concordancia">
+    <div class="row" style="justify-content:space-between">
+      <h2>Registro de la sesión · <span id="nReg" class="mono">0</span> imágenes</h2>
+      <div class="row">
+        <button class="btn primary sm" id="csv">Guardar CSV</button>
+        <button class="btn sm" id="copiar">Copiar CSV</button>
+        <button class="btn sm" id="borrar">Borrar registro</button>
+      </div>
+    </div>
+    <div id="confirmBorrar" class="locked" hidden>
+      ¿Borrar las <span id="nBorrar"></span> filas del registro? Guarda el CSV antes si lo necesitas.
+      <div class="row" style="margin-top:8px"><button class="btn sm" id="borrarSi">Sí, borrar</button><button class="btn sm" id="borrarNo">Cancelar</button></div>
+    </div>
+    <div class="metrics" id="metrics"></div>
+    <div class="row" style="gap:24px;align-items:flex-start">
+      <div>
+        <div class="small muted" style="margin-bottom:6px">Referible (grado ≥ 2) · filas: oftalmólogo, columnas: modelo</div>
+        <div class="cm" id="cm"></div>
+      </div>
+      <p class="small muted" style="max-width:60ch;margin:0">Las métricas excluyen imágenes no gradables y sin grado. El estándar de referencia es la graduación registrada en esta página. Los intervalos son de Wilson al 95 %. QWK compara el grado ICDR del oftalmólogo con el grado más probable del modelo.</p>
+    </div>
+    <div class="tablebox"><table id="tabla"><thead><tr>
+      <th>ID</th><th>Archivo</th><th>Calidad</th><th class="n">Grado oft.</th><th class="n">Grado modelo</th><th class="n">P(ref)</th><th>Modelo</th><th>Concordancia</th><th class="n">MA</th><th class="n">HE</th><th class="n">EX</th><th class="n">SE</th>
+    </tr></thead><tbody></tbody></table></div>
+    <p class="small muted" id="csvHelp">El registro se conserva en este navegador (solo texto) hasta que lo borres. Guarda el CSV al terminar cada sesión.</p>
+    <textarea id="csvText" class="mono small" rows="6" hidden readonly aria-label="CSV para copiar"></textarea>
+  </section>
+
+  <details class="card">
+    <summary>Verificación del modelo en este navegador</summary>
+    <div class="selftest" style="margin-top:10px">
+      <p class="small muted" style="margin:0">Corre los 3 casos de prueba de la app y los compara con los valores del notebook (P(referible) con diferencia &lt; 0.01; regiones de lesión con tolerancia de max(1, 15 %)). Hazlo una vez en cada computadora antes de validar.</p>
+      <div class="row"><button class="btn sm" id="selftest">Verificar casos de prueba</button></div>
+      <div id="stOut"></div>
+    </div>
+  </details>
+
+  <p class="notice">Herramienta de tamizaje en investigación, no de diagnóstico. Sus resultados no deben usarse para decisiones clínicas. Requiere confirmación por un profesional de la salud. Modelo <span class="mono" id="ver">v4_mobilenet_v3_large_384</span>. Universidad de Monterrey.</p>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script src="modelos/ort.wasm.min.js"></script>
+<script>
+"use strict";
+/* ---------- Configuración (copiada de config_app.json / config_segmentador.json) ---------- */
+const CFG = {
+  version: "v4_mobilenet_v3_large_384_v4-final-sens0.95-gradcam",
+  umbral: 0.1592,
+  clases: ["Sin RD","RDNP leve","RDNP moderada","RDNP severa","RD proliferativa"],
+  S: 384, SEG: 1024, areaMin: 3,
+  lesiones: ["MA","HE","EX","SE"],
+  nombres: {MA:"Microaneurismas",HE:"Hemorragias",EX:"Exudados duros",SE:"Exudados blandos"},
+  umbralesSeg: {MA:0.5,HE:0.5,EX:0.5,SE:0.5},
+  colores: {HE:[0xE5,0x39,0x35],EX:[0xFF,0xD6,0x00],SE:[0x00,0xE5,0xFF],MA:[0xE0,0x40,0xFB]},
+  ortMjs: new URL("modelos/ort-wasm-simd-threaded.mjs", location.href).href,
+  casos: [
+    {n:1, archivo:"casos/caso1_original.png", p:0.13981, ref:false, seg:{MA:0,HE:0,EX:0,SE:0}},
+    {n:2, archivo:"casos/caso2_original.jpg", p:0.88803, ref:true,  seg:{MA:5,HE:1,EX:0,SE:0}},
+    {n:3, archivo:"casos/caso3_original.jpg", p:0.93772, ref:true,  seg:{MA:0,HE:26,EX:3,SE:0}},
+  ],
+};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+let toastT; function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true,3200); }
+
+/* ---------- Preprocesamiento: réplica de Preprocesamiento.kt / recortar_y_redimensionar ---------- */
+function cajaRecorte(d, w, h, umbral=7){
+  let y0=h, y1=-1, x0=w, x1=-1;
+  for (let y=0; y<h; y++){
+    let o=y*w*4;
+    for (let x=0; x<w; x++, o+=4){
+      const g = Math.round(0.299*d[o] + 0.587*d[o+1] + 0.114*d[o+2]);
+      if (g>umbral){ if(y<y0)y0=y; if(y>y1)y1=y; if(x<x0)x0=x; if(x>x1)x1=x; }
+    }
+  }
+  return y1<0 ? {l:0,t:0,w:w,h:h} : {l:x0,t:y0,w:x1-x0+1,h:y1-y0+1};
+}
+function pesosArea(n, m){
+  const esc=n/m, idx=[], pes=[];
+  for (let d=0; d<m; d++){
+    const a=d*esc, b=a+esc, ii=[], ww=[];
+    const fin=Math.min(n, Math.ceil(b));
+    for (let i=Math.floor(a); i<fin; i++){
+      const o=Math.min(i+1,b)-Math.max(i,a);
+      if (o>1e-9){ ii.push(i); ww.push(Math.fround(o/esc)); }
+    }
+    idx.push(ii); pes.push(ww);
+  }
+  return [idx,pes];
+}
+function redimArea(d, w, c, s){
+  const [ix,wx]=pesosArea(c.w,s), [iy,wy]=pesosArea(c.h,s);
+  const tmp=new Float32Array(c.h*s*3);
+  for (let y=0; y<c.h; y++){
+    const base=((c.t+y)*w + c.l)*4;
+    for (let k=0; k<s; k++){
+      const ii=ix[k], ww=wx[k]; let r=0,g=0,b=0;
+      for (let j=0; j<ii.length; j++){ const o=base+ii[j]*4, q=ww[j]; r+=d[o]*q; g+=d[o+1]*q; b+=d[o+2]*q; }
+      const o=(y*s+k)*3; tmp[o]=r; tmp[o+1]=g; tmp[o+2]=b;
+    }
+  }
+  const out=new Uint8ClampedArray(s*s*3);
+  for (let k=0; k<s; k++){
+    const ii=iy[k], ww=wy[k];
+    for (let x=0; x<s; x++){
+      let r=0,g=0,b=0;
+      for (let j=0; j<ii.length; j++){ const o=(ii[j]*s+x)*3, q=ww[j]; r+=tmp[o]*q; g+=tmp[o+1]*q; b+=tmp[o+2]*q; }
+      const o=(k*s+x)*3; out[o]=Math.round(r); out[o+1]=Math.round(g); out[o+2]=Math.round(b);
+    }
+  }
+  return out;
+}
+/* Recorte menor que s en algún eje: cv2.INTER_AREA deja de promediar y usa en AMBOS ejes
+   una interpolación lineal con coeficientes propios (sx = floor(d*escala); fx = (d+1) - (sx+1)/escala). */
+/* Coeficientes en punto fijo de 11 bits y redondeo de la ruta vectorial de OpenCV: coincide bit a bit con cv2.resize. */
+function coefAreaLineal(n, m){
+  const sc=n/m, inv=m/n, S=new Int32Array(m), F=new Int32Array(m);
+  for (let d=0; d<m; d++){
+    let sx=Math.floor(d*sc), fx=Math.fround((d+1)-(sx+1)*inv); fx = fx<=0 ? 0 : Math.fround(fx-Math.floor(fx));
+    if (sx<0){ sx=0; fx=0; } if (sx+1>=n){ sx=n-1; fx=0; }
+    S[d]=sx; F[d]=Math.round(fx*2048);
+  }
+  return [S,F];
+}
+function redimBilineal(d, w, c, s){
+  const [SY,FY]=coefAreaLineal(c.h,s), [SX,FX]=coefAreaLineal(c.w,s), out=new Uint8ClampedArray(s*s*3);
+  const fila=(y)=>{ const r=new Int32Array(s*3), base=((c.t+y)*w+c.l)*4;
+    for (let x=0; x<s; x++){ const x0=SX[x], x1=Math.min(x0+1,c.w-1), a1=FX[x], a0=2048-a1;
+      for (let ch=0; ch<3; ch++) r[x*3+ch]=d[base+x0*4+ch]*a0 + d[base+x1*4+ch]*a1; }
+    return r; };
+  const cache=new Map(); const get=y=>{ let r=cache.get(y); if(!r){ r=fila(y); cache.set(y,r); if(cache.size>4) cache.delete(cache.keys().next().value); } return r; };
+  for (let y=0; y<s; y++){
+    const y0=SY[y], y1=Math.min(y0+1,c.h-1), b1=FY[y], b0=2048-b1, r0=get(y0), r1=get(y1);
+    for (let i=0; i<s*3; i++){
+      out[y*s*3+i]=(((b0*(r0[i]>>4))>>16) + ((b1*(r1[i]>>4))>>16) + 2) >> 2;
+    }
+  }
+  return out;
+}
+function preparar(img, caja, s){
+  const rgb = (caja.w<s || caja.h<s) ? redimBilineal(img.data,img.width,caja,s) : redimArea(img.data,img.width,caja,s);
+  const n=s*s, t=new Float32Array(3*n);
+  for (let i=0; i<n; i++){ t[i]=rgb[i*3]; t[n+i]=rgb[i*3+1]; t[2*n+i]=rgb[i*3+2]; }
+  return {rgb, tensor:t, s};
+}
+
+/* ---------- Decodificación de la imagen (solo en memoria) ---------- */
+const LADO_MAX=4000;
+async function decodificar(blob){
+  let bmp = await createImageBitmap(blob, {imageOrientation:"from-image", colorSpaceConversion:"none", premultiplyAlpha:"none"});
+  const lado=Math.max(bmp.width,bmp.height);
+  if (lado>LADO_MAX){
+    const k=Math.ceil(lado/LADO_MAX), w=Math.floor(bmp.width/k), h=Math.floor(bmp.height/k);
+    const b2=await createImageBitmap(bmp,{resizeWidth:w,resizeHeight:h,resizeQuality:"medium"}); bmp.close(); bmp=b2;
+  }
+  const c=document.createElement("canvas"); c.width=bmp.width; c.height=bmp.height;
+  const ctx=c.getContext("2d",{willReadFrequently:true});
+  ctx.drawImage(bmp,0,0);
+  const data=ctx.getImageData(0,0,c.width,c.height);
+  const dims={w:bmp.width,h:bmp.height};
+  bmp.close(); c.width=c.height=0;
+  return {img:data, dims};
+}
+
+/* ---------- Modelos ---------- */
+let sesClf=null, sesSeg=null, cargaSeg=null;
+function setStatus(id, cls, txt){ $(id).innerHTML=`<span class="dot ${cls}"></span>${esc(txt)}`; }
+async function bajarPartes(prefijo, partes, id, etiqueta){
+  const bufs=[]; let total=0;
+  for (let i=0; i<partes; i++){
+    setStatus(id,"busy",`${etiqueta}: descargando ${i+1}/${partes}…`);
+    const r=await fetch(`modelos/${prefijo}.part${i}.txt`);
+    if(!r.ok) throw new Error(`No se pudo descargar ${prefijo} (${r.status})`);
+    const bin=atob((await r.text()).trim()), b=new Uint8Array(bin.length);
+    for (let j=0; j<bin.length; j++) b[j]=bin.charCodeAt(j);
+    bufs.push(b); total+=b.length;
+  }
+  const out=new Uint8Array(total); let o=0; for (const b of bufs){ out.set(b,o); o+=b.length; }
+  return out;
+}
+async function iniciarMotor(){
+  ort.env.wasm.wasmPaths={mjs:CFG.ortMjs};
+  const r=await fetch("modelos/ort-wasm-simd-threaded.wasm");
+  if(!r.ok) throw new Error("No se pudo descargar el motor WebAssembly");
+  ort.env.wasm.wasmBinary=await r.arrayBuffer();
+  const hilos = self.crossOriginIsolated ? Math.min(4, navigator.hardwareConcurrency||1) : 1;
+  ort.env.wasm.numThreads=hilos;
+  $("#stEng").textContent=`ONNX Runtime Web 1.22 · WebAssembly · ${hilos} hilo${hilos>1?"s":""}`;
+}
+const opcionesSesion={executionProviders:["wasm"], graphOptimizationLevel:"all"};
+async function cargarModelos(){
+  try{
+    if (typeof ort==="undefined") throw new Error("No cargó ONNX Runtime Web (revisa la conexión a internet).");
+    await iniciarMotor();
+    const t0=performance.now();
+    const b=await bajarPartes("clasificador",3,"#stClf","Clasificador");
+    setStatus("#stClf","busy","Clasificador: inicializando…");
+    sesClf=await ort.InferenceSession.create(b, opcionesSesion);
+    setStatus("#stClf","on",`listo · ${(b.length/1e6).toFixed(1)} MB · ${Math.round(performance.now()-t0)} ms`);
+    actualizarControles();
+  }catch(e){ console.error(e); setStatus("#stClf","err",`error: ${e.message}`); }
+  cargaSeg=(async()=>{
+    try{
+      const t0=performance.now();
+      const b=await bajarPartes("segmentador",3,"#stSeg","Segmentador");
+      setStatus("#stSeg","busy","Segmentador: inicializando…");
+      sesSeg=await ort.InferenceSession.create(b, opcionesSesion);
+      setStatus("#stSeg","on",`listo · ${(b.length/1e6).toFixed(1)} MB · ${Math.round(performance.now()-t0)} ms`);
+    }catch(e){ console.error(e); setStatus("#stSeg","err",`error: ${e.message}`); }
+  })();
+}
+function softmax(z){ const m=Math.max(...z), e=z.map(v=>Math.exp(v-m)), s=e.reduce((a,b)=>a+b,0); return e.map(v=>v/s); }
+async function clasificar(prep){
+  const t0=performance.now();
+  const x=new ort.Tensor("float32", prep.tensor, [1,3,prep.s,prep.s]);
+  const r=await sesClf.run({imagen:x});
+  const logits=Array.from(r.logits.data), probs=softmax(logits);
+  const out={logits, probs, p:r.p_referible.data[0], mapa:new Float32Array(r.mapa.data), grado:probs.indexOf(Math.max(...probs)), ms:Math.round(performance.now()-t0)};
+  for (const k in r) r[k].dispose?.();
+  return out;
+}
+function componentes(m, w, h, minArea){
+  const visto=new Uint8Array(w*h), pila=new Int32Array(w*h), comps=[];
+  for (let i=0; i<w*h; i++){
+    if (!m[i] || visto[i]) continue;
+    let tope=0, area=0, sx=0, sy=0; pila[tope++]=i; visto[i]=1;
+    while (tope>0){
+      const p=pila[--tope]; area++;
+      const y=(p/w)|0, x=p-y*w; sx+=x; sy+=y;
+      for (let dy=-1; dy<=1; dy++){ const yy=y+dy; if(yy<0||yy>=h) continue;
+        for (let dx=-1; dx<=1; dx++){ const xx=x+dx; if(xx<0||xx>=w) continue;
+          const q=yy*w+xx; if (m[q] && !visto[q]){ visto[q]=1; pila[tope++]=q; } } }
+    }
+    if (area>=minArea) comps.push({area, cx:sx/area, cy:sy/area});
+  }
+  return comps;
+}
+async function segmentar(prep){
+  const t0=performance.now();
+  const x=new ort.Tensor("float32", prep.tensor, [1,3,prep.s,prep.s]);
+  const r=await sesSeg.run({imagen:x});
+  const prob=r.prob.data, ms=Math.round(performance.now()-t0);
+  const S=prep.s, n=S*S, areaFondo=n*Math.PI/4, les={}, mascaras={};
+  CFG.lesiones.forEach((k,c)=>{
+    const u=CFG.umbralesSeg[k], m=new Uint8Array(n), off=c*n;
+    for (let i=0; i<n; i++) m[i]=prob[off+i]>u?1:0;
+    const comps=componentes(m,S,S,CFG.areaMin);
+    les[k]={regiones:comps.length, areaPct:100*comps.reduce((a,b)=>a+b.area,0)/areaFondo, comps};
+    mascaras[k]=m;
+  });
+  r.prob.dispose?.();
+  return {les, mascaras, ms};
+}
+
+/* ---------- Análisis de una imagen ---------- */
+async function analizar(blob, conSeg=true){
+  const {img,dims}=await decodificar(blob);
+  const tp0=performance.now();
+  const caja=cajaRecorte(img.data,img.width,img.height);
+  const p384=preparar(img,caja,CFG.S);
+  const p1024=preparar(img,caja,CFG.SEG);
+  const msPrep=Math.round(performance.now()-tp0);
+  const res={dims, caja, vista:p1024.rgb, msPrep};
+  res.clf=await clasificar(p384);
+  p384.tensor=null;
+  if (conSeg){
+    res.segPromesa=(async()=>{ await cargaSeg; if(!sesSeg) return null; await nextFrame(); const s=await segmentar(p1024); p1024.tensor=null; return s; })();
+  }
+  return res;
+}
+
+/* ---------- Visualización ---------- */
+const cv=$("#cv"), ctx=cv.getContext("2d");
+let vista="orig", actual=null; const capasOn={MA:true,HE:true,EX:true,SE:true};
+function jet(v){ const c=x=>Math.round(Math.min(1,Math.max(0,x))*255); return [c(1.5-Math.abs(4*v-3)), c(1.5-Math.abs(4*v-2)), c(1.5-Math.abs(4*v-1))]; }
+function rgbAImageData(rgb,s){ const id=new ImageData(s,s); for(let i=0,j=0;i<s*s;i++,j+=3){ id.data[i*4]=rgb[j]; id.data[i*4+1]=rgb[j+1]; id.data[i*4+2]=rgb[j+2]; id.data[i*4+3]=255; } return id; }
+function canvasDe(id){ const c=document.createElement("canvas"); c.width=id.width; c.height=id.height; c.getContext("2d").putImageData(id,0,0); return c; }
+function capaCam(mapa,s){ const id=new ImageData(s,s); for(let i=0;i<s*s;i++){ const v=Math.min(1,Math.max(0,mapa[i])), [r,g,b]=jet(v); id.data[i*4]=r; id.data[i*4+1]=g; id.data[i*4+2]=b; id.data[i*4+3]=Math.round(30+160*v); } return canvasDe(id); }
+function capaLesiones(mascaras,s){ const id=new ImageData(s,s); for (const k of ["MA","SE","EX","HE"]){ if(!capasOn[k]) continue; const m=mascaras[k], [r,g,b]=CFG.colores[k]; for(let i=0;i<s*s;i++) if(m[i]){ id.data[i*4]=r; id.data[i*4+1]=g; id.data[i*4+2]=b; id.data[i*4+3]=0xC8; } } return canvasDe(id); }
+function dibujar(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  $("#empty").hidden=!!actual;
+  $("#legCam").hidden=!(actual && vista==="cam");
+  $("#legLes").hidden=!(actual && vista==="les");
+  if(!actual) return;
+  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality="high";
+  ctx.drawImage(actual.base,0,0,cv.width,cv.height);
+  if (vista==="cam" && actual.cam){ ctx.globalAlpha=$("#alpha").value/100; ctx.drawImage(actual.cam,0,0,cv.width,cv.height); ctx.globalAlpha=1; }
+  if (vista==="les" && actual.seg){
+    ctx.drawImage(capaLesiones(actual.seg.mascaras,CFG.SEG),0,0,cv.width,cv.height);
+    if (capasOn.MA){ const [r,g,b]=CFG.colores.MA; ctx.strokeStyle=`rgb(${r},${g},${b})`; ctx.lineWidth=2.5; const k=cv.width/CFG.SEG;
+      for (const c of actual.seg.les.MA.comps){ ctx.beginPath(); ctx.arc(c.cx*k,c.cy*k,11,0,Math.PI*2); ctx.stroke(); } }
+  }
+}
+function leyendaLesiones(){
+  const L=$("#legLes"); const seg=actual?.seg;
+  if(!seg){ L.innerHTML=`<span class="muted"><span class="spin"></span>Segmentando lesiones a 1024 px…</span>`; return; }
+  L.innerHTML=CFG.lesiones.map(k=>{ const [r,g,b]=CFG.colores[k]; return `<label><input type="checkbox" data-k="${k}" ${capasOn[k]?"checked":""}><span class="sw" style="background:rgb(${r},${g},${b})"></span>${CFG.nombres[k]} <span class="mono muted">${seg.les[k].regiones}</span></label>`; }).join("")+`<span class="muted small">Los microaneurismas se marcan con un círculo.</span>`;
+}
+$("#legLes").addEventListener("change",e=>{ const k=e.target.dataset.k; if(k){ capasOn[k]=e.target.checked; dibujar(); } });
+$("#alpha").addEventListener("input",dibujar);
+document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>{ if(b.disabled) return; vista=b.dataset.v; document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b)); if(vista==="les") leyendaLesiones(); dibujar(); }));
+$("#zoom").addEventListener("click",()=>{ const z=$("#stage").classList.toggle("zoom"); $("#zoom").setAttribute("aria-pressed",z); $("#zoom").textContent=z?"Ajustar":"Ampliar"; });
+
+/* ---------- Cola y flujo de graduación ---------- */
+const cola=[]; let idx=-1, revelado=false, ocupado=false;
+let registros=[]; const LS="rdval_registro_v1";
+try{ registros=JSON.parse(localStorage.getItem(LS)||"[]"); }catch{ registros=[]; }
+function guardarLocal(){ try{ localStorage.setItem(LS, JSON.stringify(registros)); }catch{} }
+try{ const s=JSON.parse(localStorage.getItem("rdval_sesion")||"{}"); if(s.evaluador) $("#evaluador").value=s.evaluador; if(s.equipo) $("#equipo").value=s.equipo; if(s.anon) $("#anon").value=s.anon; if(s.ciego===false) $("#ciego").checked=false; }catch{}
+["evaluador","equipo","anon","ciego"].forEach(id=>$("#"+id).addEventListener("change",()=>{ try{ localStorage.setItem("rdval_sesion",JSON.stringify({evaluador:$("#evaluador").value,equipo:$("#equipo").value,anon:$("#anon").value,ciego:$("#ciego").checked})); }catch{} }));
+
+function pintarCola(){
+  $("#queue").innerHTML=cola.map((c,i)=>`<span class="chip ${i===idx?"cur":""} ${c.hecho?"done":""}" title="${esc(c.nombre)}">${esc(c.nombre)}</span>`).join("");
+  const cur=$("#queue .cur"); cur?.scrollIntoView({block:"nearest",inline:"nearest"});
+}
+function agregar(files){
+  const imgs=[...files].filter(f=>/^image\//.test(f.type)||/\.(jpe?g|png|bmp|webp|tiff?)$/i.test(f.name));
+  imgs.sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  imgs.forEach(f=>cola.push({file:f,nombre:f.name,hecho:false}));
+  pintarCola();
+  if (imgs.length) toast(`${imgs.length} imagen${imgs.length>1?"es":""} en la cola`);
+  if (idx<0 || (cola[idx]?.hecho && !actual)) siguiente();
+  actualizarControles();
+}
+function siguienteId(){ let n=registros.length+1; return "IMG-"+String(n).padStart(3,"0"); }
+function liberar(){ if(actual){ actual.base.width=0; actual.cam&&(actual.cam.width=0); actual=null; } dibujar(); }
+async function siguiente(){
+  if (!sesClf){ toast("El clasificador todavía se está cargando."); return; }
+  liberar();
+  if (idx>=0 && cola[idx]) cola[idx].file=null;            // suelta la referencia al archivo
+  idx++;
+  revelado=false; $("#modelCard").hidden=true; limpiarForm();
+  if (idx>=cola.length){ idx=cola.length; pintarCola(); $("#curId").textContent=""; $("#gradeHint").textContent= cola.length? "Terminaste la cola. Agrega más imágenes o guarda el CSV.":"Agrega una imagen para empezar."; $("#imgInfo").textContent=""; actualizarControles(); return; }
+  pintarCola();
+  const item=cola[idx];
+  ocupado=true; actualizarControles();
+  $("#gradeHint").innerHTML=`<span class="spin"></span>Analizando ${esc(item.nombre)}…`;
+  await nextFrame();
+  try{
+    const res=await analizar(item.file);
+    actual={item, id:siguienteId(), res, base:canvasDe(rgbAImageData(res.vista,CFG.SEG)), cam:capaCam(res.clf.mapa,CFG.S), seg:null};
+    res.vista=null;
+    $("#curId").textContent=actual.id;
+    $("#imgInfo").textContent=`${item.nombre} · ${res.dims.w}×${res.dims.h} px · recorte ${res.caja.w}×${res.caja.h}`;
+    const yo=actual;
+    res.segPromesa?.then(s=>{ if(actual!==yo) return; actual.seg=s; if(vista==="les") leyendaLesiones(); if(revelado) pintarModelo(); dibujar(); }).catch(e=>{ console.error(e); toast("Falló el segmentador: "+e.message); });
+    $("#gradeHint").textContent = $("#ciego").checked ? "Gradúa la imagen. El resultado del modelo ya está calculado y se mostrará al registrar." : "Modo abierto: el resultado del modelo está visible.";
+    if (!$("#ciego").checked){ revelado=true; pintarModelo(); }
+  }catch(e){
+    console.error(e); $("#gradeHint").textContent=`No se pudo leer ${item.nombre}: ${e.message}. Usa “Saltar imagen”.`;
+  }
+  ocupado=false; actualizarControles(); dibujar();
+}
+function limpiarForm(){ document.querySelectorAll('input[name=gr]').forEach(r=>r.checked=false); $("#cal1").checked=true; ["edema","ojo","coment"].forEach(i=>$("#"+i).value=""); }
+function actualizarControles(){
+  const hay=!!actual;
+  $("#gradeForm").disabled=!hay||revelado&&$("#ciego").checked&&yaRegistrado();
+  $("#registrar").disabled=!hay||ocupado||yaRegistrado();
+  $("#saltar").disabled=ocupado||idx<0||idx>=cola.length;
+  const mostrar=hay && (revelado || !$("#ciego").checked);
+  $("#tabG").disabled=!mostrar; $("#tabL").disabled=!mostrar;
+  if (!mostrar && vista!=="orig"){ vista="orig"; document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.v==="orig")); }
+  $("#demo").disabled=!sesClf||ocupado; $("#pick").disabled=false;
+}
+function yaRegistrado(){ return !!actual?.registro; }
+function pintarModelo(){
+  const r=actual.res, c=r.clf, ref=c.p>=CFG.umbral, seg=actual.seg;
+  $("#modelCard").hidden=false;
+  $("#tiempos").textContent=`prep ${r.msPrep} ms · clasif ${c.ms} ms`+(seg?` · lesiones ${seg.ms} ms`:"");
+  const maxp=Math.max(...c.probs);
+  const reg=actual.registro;
+  let conc="";
+  if (reg && reg.grado_oft!==""){ const oref=+reg.grado_oft>=2; conc=`<p class="small" style="margin:0">Oftalmólogo: grado ${reg.grado_oft} (${oref?"referible":"no referible"}) · <span class="pill ${oref===ref?"agree":"dis"}">${oref===ref?"coinciden":"no coinciden"}</span></p>`; }
+  $("#modelBody").innerHTML=`
+    <div class="verdict ${ref?"ref":"no"}"><strong>${ref?"REFERIR":"NO REFERIBLE"}</strong><span class="mono">P(referible) = ${c.p.toFixed(4)}</span></div>
+    <div class="meter" aria-hidden="true"><div class="fill" style="width:${(c.p*100).toFixed(1)}%"></div><div class="thr" style="left:${CFG.umbral*100}%"><span>umbral ${CFG.umbral}</span></div></div>
+    ${conc}
+    <div class="grades">${c.probs.map((p,i)=>`<span class="mono">${i}</span><div class="bar ${p===maxp?"top":""}"><i style="width:${(p*100).toFixed(1)}%"></i></div><span class="mono small">${(p*100).toFixed(1)} %</span>`).join("")}</div>
+    <p class="small muted" style="margin:0">Grado más probable: ${c.grado} · ${CFG.clases[c.grado]}</p>
+    <div>${seg?`<table><thead><tr><th>Lesión</th><th class="n">Regiones</th><th class="n">Área %</th></tr></thead><tbody>${CFG.lesiones.map(k=>`<tr><td>${CFG.nombres[k]}</td><td class="n">${seg.les[k].regiones}</td><td class="n">${seg.les[k].areaPct.toFixed(3)}</td></tr>`).join("")}</tbody></table>`:`<p class="small muted"><span class="spin"></span>Segmentando lesiones…</p>`}</div>`;
+  $("#modelBody").style.cssText="display:flex;flex-direction:column;gap:12px";
+  actualizarControles();
+}
+function leerForm(){
+  const g=document.querySelector('input[name=gr]:checked')?.value ?? "";
+  return {calidad:document.querySelector('input[name=cal]:checked').value, grado_oft:g, edema:$("#edema").value, midriasis:$("#midriasis").value, ojo:$("#ojo").value, comentario:$("#coment").value.trim()};
+}
+$("#registrar").addEventListener("click",async()=>{
+  if(!actual) return;
+  const f=leerForm();
+  if (f.calidad!=="no_gradable" && f.grado_oft===""){ toast("Elige el grado ICDR o marca la imagen como no gradable."); return; }
+  const ciego=$("#ciego").checked;
+  $("#registrar").disabled=true;
+  if (actual.res.segPromesa && !actual.seg){ $("#gradeHint").innerHTML='<span class="spin"></span>Esperando al segmentador…'; actual.seg=await actual.res.segPromesa.catch(()=>null); }
+  const c=actual.res.clf, s=actual.seg;
+  const reg={
+    id:actual.id, archivo:$("#anon").value==="incluir"?actual.item.nombre:"", evaluador:$("#evaluador").value.trim(), equipo:$("#equipo").value.trim(),
+    fecha_hora:new Date().toISOString(), modo:ciego?"ciego":"abierto", ...f,
+    p_referible:+c.p.toFixed(6), decision_modelo:c.p>=CFG.umbral?"referible":"no_referible", grado_modelo:c.grado,
+    p0:+c.probs[0].toFixed(5), p1:+c.probs[1].toFixed(5), p2:+c.probs[2].toFixed(5), p3:+c.probs[3].toFixed(5), p4:+c.probs[4].toFixed(5),
+    MA_reg:s?.les.MA.regiones??"", HE_reg:s?.les.HE.regiones??"", EX_reg:s?.les.EX.regiones??"", SE_reg:s?.les.SE.regiones??"",
+    MA_area_pct:s?+s.les.MA.areaPct.toFixed(4):"", HE_area_pct:s?+s.les.HE.areaPct.toFixed(4):"", EX_area_pct:s?+s.les.EX.areaPct.toFixed(4):"", SE_area_pct:s?+s.les.SE.areaPct.toFixed(4):"",
+    ancho_px:actual.res.dims.w, alto_px:actual.res.dims.h, ms_clasif:c.ms, ms_seg:s?.ms??"", version_modelo:CFG.version, umbral:CFG.umbral,
+  };
+  registros.push(reg); guardarLocal(); actual.registro=reg; cola[idx].hecho=true;
+  revelado=true; pintarModelo(); pintarCola(); pintarRegistro();
+  $("#gradeHint").textContent= ciego ? "Graduación registrada y bloqueada. Revisa el resultado y pasa a la siguiente." : "Graduación registrada.";
+  actualizarControles(); dibujar();
+  $("#siguiente").focus({preventScroll:false});
+});
+$("#siguiente").addEventListener("click",siguiente);
+$("#saltar").addEventListener("click",siguiente);
+$("#pick").addEventListener("click",()=>$("#files").click());
+$("#files").addEventListener("change",e=>{ agregar(e.target.files); e.target.value=""; });
+const drop=$("#drop");
+["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault(); drop.classList.add("over");}));
+["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault(); drop.classList.remove("over");}));
+drop.addEventListener("drop",e=>agregar(e.dataTransfer.files));
+$("#demo").addEventListener("click",async()=>{
+  const r=await fetch(CFG.casos[1].archivo); const b=await r.blob();
+  agregar([new File([b],"ejemplo_DDR_grado2.jpg",{type:"image/jpeg"})]);
+});
+window.addEventListener("beforeunload",e=>{ if(actual && !actual.registro){ e.preventDefault(); e.returnValue=""; } });
+
+/* ---------- Métricas ---------- */
+function wilson(k,n){ if(!n) return null; const z=1.959964, p=k/n, d=1+z*z/n, c=(p+z*z/(2*n))/d, h=z*Math.sqrt(p*(1-p)/n+z*z/(4*n*n))/d; return [Math.max(0,c-h),Math.min(1,c+h)]; }
+function qwk(a,b){ const K=5, n=a.length; if(n<2) return null; const O=Array.from({length:K},()=>Array(K).fill(0)), ha=Array(K).fill(0), hb=Array(K).fill(0);
+  a.forEach((x,i)=>{ O[x][b[i]]++; ha[x]++; hb[b[i]]++; });
+  let num=0, den=0; for(let i=0;i<K;i++) for(let j=0;j<K;j++){ const w=(i-j)**2/((K-1)**2); num+=w*O[i][j]; den+=w*ha[i]*hb[j]/n; }
+  return den? 1-num/den : null; }
+const pct=v=>v==null?"—":(v*100).toFixed(1)+" %";
+function pintarRegistro(){
+  $("#nReg").textContent=registros.length;
+  const val=registros.filter(r=>r.calidad!=="no_gradable" && r.grado_oft!=="");
+  let TP=0,FP=0,FN=0,TN=0; val.forEach(r=>{ const o=+r.grado_oft>=2, m=r.decision_modelo==="referible"; if(o&&m)TP++; else if(!o&&m)FP++; else if(o&&!m)FN++; else TN++; });
+  const sens=TP+FN?TP/(TP+FN):null, esp=TN+FP?TN/(TN+FP):null, acu=val.length?(TP+TN)/val.length:null;
+  const k=qwk(val.map(r=>+r.grado_oft), val.map(r=>+r.grado_modelo));
+  const exact=val.length? val.filter(r=>+r.grado_oft===+r.grado_modelo).length/val.length : null;
+  const ci=(a,b)=>{ const w=wilson(a,b); return w?`IC95 ${(w[0]*100).toFixed(1)}–${(w[1]*100).toFixed(1)}`:"sin casos"; };
+  const nog=registros.filter(r=>r.calidad==="no_gradable").length;
+  $("#metrics").innerHTML=[
+    ["Sensibilidad",pct(sens),ci(TP,TP+FN)+` · n=${TP+FN}`],
+    ["Especificidad",pct(esp),ci(TN,TN+FP)+` · n=${TN+FP}`],
+    ["Acuerdo referible",pct(acu),`${TP+TN} de ${val.length}`],
+    ["QWK grado ICDR",k==null?"—":k.toFixed(3),`grado exacto ${pct(exact)}`],
+    ["Tasa de referencia del modelo",pct(val.length?(TP+FP)/val.length:null),`oftalmólogo ${pct(val.length?(TP+FN)/val.length:null)}`],
+    ["No gradables",registros.length?pct(nog/registros.length):"—",`${nog} de ${registros.length}`],
+  ].map(([a,b,c])=>`<div class="metric"><span class="k">${a}</span><span class="v">${b}</span><span class="ci">${c}</span></div>`).join("");
+  $("#cm").innerHTML=`<div class="h"></div><div class="h">Modelo: referible</div><div class="h">Modelo: no referible</div>
+    <div class="h">Oft.: referible</div><div class="val">${TP}</div><div class="val">${FN}</div>
+    <div class="h">Oft.: no referible</div><div class="val">${FP}</div><div class="val">${TN}</div>`;
+  const tb=$("#tabla tbody");
+  tb.innerHTML = registros.length ? registros.slice().reverse().map(r=>{
+    const o=r.grado_oft===""?null:+r.grado_oft>=2, m=r.decision_modelo==="referible";
+    const conc= o==null||r.calidad==="no_gradable" ? `<span class="pill na">excluida</span>` : `<span class="pill ${o===m?"agree":"dis"}">${o===m?"coincide":"discrepa"}</span>`;
+    return `<tr><td class="mono">${esc(r.id)}</td><td>${esc(r.archivo||"—")}</td><td>${esc(r.calidad.replace("_"," "))}</td><td class="n">${esc(r.grado_oft===""?"—":r.grado_oft)}</td><td class="n">${r.grado_modelo}</td><td class="n">${(+r.p_referible).toFixed(3)}</td><td><span class="pill ${m?"ref":"no"}">${m?"referible":"no referible"}</span></td><td>${conc}</td><td class="n">${r.MA_reg}</td><td class="n">${r.HE_reg}</td><td class="n">${r.EX_reg}</td><td class="n">${r.SE_reg}</td></tr>`;
+  }).join("") : `<tr><td colspan="12" class="muted" style="white-space:normal">Aún no hay graduaciones. Cada imagen registrada aparece aquí con la decisión del modelo y si coincide con la del oftalmólogo.</td></tr>`;
+}
+const COLS=["id","archivo","evaluador","equipo","fecha_hora","modo","calidad","grado_oft","edema","midriasis","ojo","comentario","p_referible","decision_modelo","grado_modelo","p0","p1","p2","p3","p4","MA_reg","HE_reg","EX_reg","SE_reg","MA_area_pct","HE_area_pct","EX_area_pct","SE_area_pct","ancho_px","alto_px","ms_clasif","ms_seg","version_modelo","umbral"];
+function csv(){ const q=v=>{ const s=String(v??""); return /[",\n;]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; }; return [COLS.join(","), ...registros.map(r=>COLS.map(c=>q(r[c])).join(","))].join("\n"); }
+function nombreCSV(){ const ev=($("#evaluador").value.trim()||"sesion").replace(/[^\w-]+/g,"_"); return `validacion_RD_${ev}_${new Date().toISOString().slice(0,10)}.csv`; }
+$("#csv").addEventListener("click",async()=>{
+  if(!registros.length){ toast("Todavía no hay registros."); return; }
+  const data="﻿"+csv();
+  if (window.claude?.use){
+    const d=await window.claude.use("downloads").catch(()=>null);
+    if (d){ try{ await d.save({filename:nombreCSV(), data}); toast("CSV guardado"); }catch(e){ if(e?.code==="declined") toast("Descarga cancelada"); else mostrarCSV("No se pudo descargar aquí. Copia el CSV de abajo."); } return; }
+    mostrarCSV("La descarga no está disponible en esta vista. Copia el CSV de abajo."); return;
+  }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([data],{type:"text/csv;charset=utf-8"})); a.download=nombreCSV(); document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); toast("CSV guardado");
+});
+function mostrarCSV(msg){ const t=$("#csvText"); t.value=csv(); t.hidden=false; t.focus(); t.select(); toast(msg); }
+$("#copiar").addEventListener("click",async()=>{ if(!registros.length){ toast("Todavía no hay registros."); return; } try{ await navigator.clipboard.writeText(csv()); toast("CSV copiado al portapapeles"); }catch{ mostrarCSV("Selecciona y copia el CSV de abajo."); } });
+$("#borrar").addEventListener("click",()=>{ if(!registros.length) return; $("#nBorrar").textContent=registros.length; $("#confirmBorrar").hidden=false; });
+$("#borrarNo").addEventListener("click",()=>$("#confirmBorrar").hidden=true);
+$("#borrarSi").addEventListener("click",()=>{ registros=[]; guardarLocal(); $("#confirmBorrar").hidden=true; $("#csvText").hidden=true; pintarRegistro(); toast("Registro borrado"); });
+
+/* ---------- Autoverificación con los casos de prueba ---------- */
+$("#selftest").addEventListener("click",async()=>{
+  const out=$("#stOut"), b=$("#selftest"); b.disabled=true; out.innerHTML=`<div class="line"><span class="spin"></span>Corriendo…</div>`;
+  const lineas=[]; let ok=0, okSeg=0;
+  try{
+    await cargaSeg;
+    for (const c of CFG.casos){
+      const blob=await (await fetch(c.archivo)).blob();
+      const r=await analizar(blob,!!sesSeg);
+      const dif=Math.abs(r.clf.p-c.p), bien=dif<0.01 && (r.clf.p>=CFG.umbral)===c.ref; if(bien) ok++;
+      let txtSeg="";
+      if (r.segPromesa){ const s=await r.segPromesa; const bs=CFG.lesiones.every(k=>Math.abs(s.les[k].regiones-c.seg[k])<=Math.max(1,Math.round(0.15*c.seg[k]))); if(bs) okSeg++;
+        txtSeg=` · lesiones ${CFG.lesiones.map(k=>`${k} ${s.les[k].regiones}/${c.seg[k]}`).join(" ")} ${bs?"✓":"✗"} (${s.ms} ms)`; }
+      lineas.push(`Caso ${c.n}: P=${r.clf.p.toFixed(5)} esperado ${c.p.toFixed(5)} · Δ=${dif.toExponential(1)} ${bien?"✓":"✗"} (${r.clf.ms} ms)${txtSeg}`);
+      out.innerHTML=lineas.map(l=>`<div class="line">${esc(l)}</div>`).join("")+`<div class="line"><span class="spin"></span>…</div>`;
+    }
+    lineas.push(`Clasificador ${ok}/3 · Segmentador ${sesSeg?okSeg+"/3":"no cargado"}`);
+  }catch(e){ lineas.push("Error: "+e.message); console.error(e); }
+  out.innerHTML=lineas.map(l=>`<div class="line">${esc(l)}</div>`).join("");
+  window.__autoprueba=lineas; b.disabled=false;
+});
+
+pintarRegistro(); actualizarControles(); dibujar();
+cargarModelos();
+</script>
+
+</body>
+</html>
