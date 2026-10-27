@@ -1,0 +1,17 @@
+{
+ "partes": 21,
+ "capas": [
+  {
+   "salida": "lc_f12",
+   "nombre": "features[12] · 24×24"
+  },
+  {
+   "salida": "lc_f6",
+   "nombre": "features[6] · 48×48"
+  },
+  {
+   "salida": "lc_f3",
+   "nombre": "features[3] · 96×96"
+  }
+ ]
+}
